@@ -6,9 +6,9 @@ from bs4 import BeautifulSoup
 
 class Spider:
     def __init__(self, total_pages=40):
-        self.base_url = "http://vimcolors.com/?page="
+        self.base_url = "http://vimcolors.com"
         self.total_pages = total_pages
-        self.download_dir = 'colors/'
+        self.download_dir = 'colors'
         # If we don't have the download directory
         if not os.path.isdir(self.download_dir):
             print(self.download_dir, 'does not exist, trying to create it...')
@@ -16,36 +16,37 @@ class Spider:
             os.mkdir(self.download_dir)
 
     def download(self, name, url):
+        full_path = os.path.join(self.download_dir, name)
         # If we have already downloaded this file, just skip
-        if os.path.isfile(self.download_dir + name):
+        if os.path.isfile(full_path):
             print('File:', name, 'already exists; skipping.')
             return
 
         try:
             # Get the response
             response = requests.get(url)
-            # If response is 404 (Not Found), just exit
             if response.status_code == 404:
-                raise Exception('File not found')
-            # Create the file
-            with open(self.download_dir + name, 'wb') as file_path:
-                # Write content to the file
+                raise Exception('File not found: {}'.format(url))
+        except Exception as e:
+            print(e)
+            return
+
+        try:
+            # Try downloading the file
+            with open(full_path, 'wb') as file_path:
                 file_path.write(response.content)
-                # Confirm the download
                 print('Downloaded', name)
-        except:
-            # This is a very generic error, perhaps I'll change it sometime :)
+        except Exception:
             print('Could not download the file', name)
-            pass
 
     def crawl(self):
         def repo_formatter(scheme):
-            return scheme['github_repo']['address'].replace('github.com', 'raw.githubusercontent.com') \
-                   + '/master/colors/'
+            base_url = scheme['github_repo']['address'].replace('github.com', 'raw.githubusercontent.com')
+            return '{}/master/colors/'.format(base_url)
 
         # Loop over all the pages
         for page in range(self.total_pages):
-            page_source = requests.get(self.base_url + str(page + 1))
+            page_source = requests.get(self.base_url, params={'page': page + 1})
             plain_text = page_source.text
             soup = BeautifulSoup(plain_text, 'lxml')
 
@@ -56,6 +57,8 @@ class Spider:
             for data in json_data['colorschemes']:
                 file_name = data['name'] + '.vim'
                 self.download(file_name, repo_formatter(data) + file_name)
+
+        print('\n\nAll done.')
 
 
 colors_spider = Spider()
