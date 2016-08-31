@@ -19,25 +19,16 @@ class Spider:
         full_path = os.path.join(self.download_dir, name)
         # If we have already downloaded this file, just skip
         if os.path.isfile(full_path):
-            print('File:', name, 'already exists; skipping.')
-            return
+            raise Exception('File: {} already exists; skipping.'.format(name))
 
-        try:
-            # Get the response
-            response = requests.get(url)
-            if response.status_code == 404:
-                raise Exception('File not found: {}'.format(url))
-        except Exception as e:
-            print(e)
-            return
+        # Get the response
+        response = requests.get(url)
+        if response.status_code == 404:
+            raise Exception('File not found: {}'.format(url))
 
-        try:
-            # Try downloading the file
-            with open(full_path, 'wb') as file_path:
-                file_path.write(response.content)
-                print('Downloaded', name)
-        except Exception:
-            print('Could not download the file', name)
+        # Try downloading the file
+        with open(full_path, 'wb') as file_path:
+            file_path.write(response.content)
 
     def crawl(self):
         def repo_formatter(scheme):
@@ -56,7 +47,11 @@ class Spider:
             # Download the files
             for data in json_data['colorschemes']:
                 file_name = data['name'] + '.vim'
-                self.download(file_name, repo_formatter(data) + file_name)
+                try:
+                    self.download(file_name, repo_formatter(data) + file_name)
+                    print('Downloaded', file_name)
+                except Exception as e:
+                    print(e)
 
         print('\n\nAll done.')
 
