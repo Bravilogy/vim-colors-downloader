@@ -66,7 +66,7 @@ class Spider:
             # Download the files
             for data in json_data['colorschemes']:
                 file_name = data['name'] + '.vim'
-                collection.append(Link(file_name, repo_formatter(data)))
+                collection.append(Link(file_name, repo_formatter(data) + file_name))
 
         # Delegate to multiprocessing
         print('\n\nFinished crawling pages. Starting downloads...')
