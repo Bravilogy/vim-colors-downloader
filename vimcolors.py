@@ -7,7 +7,7 @@ from multiprocessing import Pool
 
 
 class Spider:
-    def __init__(self, total_pages=40):
+    def __init__(self, total_pages=41):
         self.base_url = "http://vimcolors.com"
         self.total_pages = total_pages
         self.download_dir = 'colors'
