@@ -6,12 +6,6 @@ from bs4 import BeautifulSoup
 from multiprocessing import Pool
 
 
-class Link:
-    def __init__(self, name, url):
-        self.url = url
-        self.name = name
-
-
 class Spider:
     def __init__(self, total_pages=40):
         self.base_url = "http://vimcolors.com"
@@ -24,7 +18,7 @@ class Spider:
             os.mkdir(self.download_dir)
 
     def download(self, link):
-        name, url = link.name, link.url
+        name, url = link['name'], link['url']
 
         try:
             full_path = os.path.join(self.download_dir, name)
@@ -47,28 +41,29 @@ class Spider:
 
     def crawl(self):
         def repo_formatter(scheme):
-            base_url = scheme['github_repo']['address'].replace('github.com', 'raw.githubusercontent.com')
-            return '{}/master/colors/'.format(base_url)
+            base_url = scheme['github_repo']['address'].replace('github.com', 'raw.githubusercontent.com').rstrip('/')
+            return '{}/master/colors/'.format(base_url).replace('.git/', '/')
         
         # This will hold all the links
         collection = []
 
         # Loop over all the pages
         for page in range(self.total_pages):
-            print('Fetching links from page', page + 1, 'out of', self.total_pages)
-            page_source = requests.get(self.base_url, params={'page': page + 1})
+            current_page = page + 1
+            print('Fetching links from page', current_page, 'out of', self.total_pages)
+            page_source = requests.get(self.base_url, params={'page': current_page})
             plain_text = page_source.text
             soup = BeautifulSoup(plain_text, 'lxml')
 
             # Get the data
-            json_data = json.loads(soup.find('div', {'id': 'data'}).attrs['data-colorschemes'])
+            json_data = json.loads(soup.find(id='data')['data-colorschemes'])['colorschemes']
 
             # Download the files
-            for data in json_data['colorschemes']:
+            for data in json_data:
                 file_name = data['name'] + '.vim'
-                collection.append(Link(file_name, repo_formatter(data) + file_name))
+                collection.append({'name': file_name, 'url': repo_formatter(data) + file_name})
 
-        # Delegate to multiprocessing
+        # Delegate to multiprocessing after fetching all the links
         print('\n\nFinished crawling pages. Starting downloads...')
         time.sleep(2)
 
